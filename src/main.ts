@@ -15,6 +15,32 @@ const strokes: Stroke[] = [];
 let stroke: Stroke;
 let activePointer: number | null = null;
 
+function render() {
+  context.clearRect(0, 0, canvas.width, canvas.height);
+  for (const item of activePointer === null ? strokes : [...strokes, stroke]) {
+    context.strokeStyle = item.color;
+    context.lineWidth = item.width;
+    context.beginPath();
+    context.moveTo(item.points[0].x, item.points[0].y);
+    for (const point of item.points.slice(1)) {
+      context.lineTo(point.x, point.y);
+    }
+    context.stroke();
+  }
+}
+
+const redraw = document.createElement("button");
+redraw.textContent = "Redraw";
+redraw.onclick = render;
+const clear = document.createElement("button");
+clear.textContent = "Clear";
+clear.onclick = () => {
+  strokes.length = 0;
+  activePointer = null;
+  render();
+};
+app.append(redraw, clear);
+
 canvas.addEventListener("pointerdown", (event) => {
   if (activePointer !== null || event.button !== 0) return;
   activePointer = event.pointerId;
@@ -23,23 +49,20 @@ canvas.addEventListener("pointerdown", (event) => {
     color: "black",
     width: 1,
   };
-  context.strokeStyle = stroke.color;
-  context.lineWidth = stroke.width;
-  context.beginPath();
-  context.moveTo(event.offsetX, event.offsetY);
+  render();
 });
 
 canvas.addEventListener("pointermove", (event) => {
   if (event.pointerId !== activePointer) return;
   stroke.points.push({ x: event.offsetX, y: event.offsetY });
-  context.lineTo(event.offsetX, event.offsetY);
-  context.stroke();
+  render();
 });
 
 function finishStroke(event: PointerEvent) {
   if (event.pointerId !== activePointer) return;
   strokes.push(stroke);
   activePointer = null;
+  render();
 }
 
 canvas.addEventListener("pointerup", finishStroke);
