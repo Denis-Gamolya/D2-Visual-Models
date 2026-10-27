@@ -3,6 +3,8 @@ const app = document.querySelector<HTMLElement>("#app")!;
 const canvas = document.createElement("canvas");
 canvas.style.outline = "1px solid black";
 canvas.style.touchAction = "none";
+canvas.style.display = "block";
+canvas.style.margin = "auto";
 app.append(canvas);
 
 // Points use canvas coordinates; each stroke retains its own appearance.
@@ -40,10 +42,18 @@ const redraw = document.createElement("button");
 redraw.textContent = "Redraw";
 redraw.onclick = render;
 
-// create Clear button
+// create Clear button: resets ONLY the canvas
 const clear = document.createElement("button");
-clear.textContent = "Clear";
+clear.textContent = "Clear Canvas";
 clear.onclick = () => {
+  context.clearRect(0, 0, canvas.width, canvas.height);
+  activePointer = null;
+};
+
+// clear document button: resets the WHOLE document
+const clear_doc = document.createElement("button");
+clear_doc.textContent = "Clear Document";
+clear_doc.onclick = () => {
   strokes.length = 0;
   undone.length = 0;
   activePointer = null;
@@ -67,7 +77,7 @@ redo.onclick = () => {
   if (item) strokes.push(item);
   render();
 };
-app.append(redraw, clear, undo, redo);
+app.append(redraw, clear, clear_doc, undo, redo);
 render();
 
 canvas.addEventListener("pointerdown", (event) => {
