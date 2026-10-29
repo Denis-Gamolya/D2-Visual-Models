@@ -113,6 +113,28 @@ thick.onclick = () => {
   current_tool.mode = "marker";
 };
 
+// user input for emoji
+
+const userButtonInput = document.createElement("input");
+userButtonInput.type = "text";
+userButtonInput.placeholder = "Enter Custom Emoji";
+app.append(userButtonInput);
+
+const addCustomEmoji = document.createElement("button");
+addCustomEmoji.textContent = "Add Custom Emoji";
+addCustomEmoji.onclick = () => {
+  const curr = userButtonInput.value.trim();
+  const button = document.createElement("button");
+  button.innerText = `${curr}`;
+  button.onclick = () => {
+    current_tool.mode = "emoji";
+    current_tool.emoji = `${curr}`;
+  };
+
+  app.append(button);
+};
+app.append(addCustomEmoji);
+
 // emojis (data driven design yay)
 
 if (emojiBox) {
