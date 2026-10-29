@@ -1,13 +1,22 @@
 const app = document.querySelector<HTMLElement>("#app")!;
 
 const canvas = document.createElement("canvas");
-canvas.width = 800;
-canvas.height = 600;
+canvas.width = 400;
+canvas.height = 300;
 canvas.style.outline = "1px solid black";
 canvas.style.touchAction = "none";
 canvas.style.display = "block";
 canvas.style.margin = "auto";
+const canvas_ctx = canvas.getContext("2d");
+if (canvas_ctx === null) throw new Error("null context");
 app.append(canvas);
+
+// export canvas
+const export_canvas = document.createElement("canvas");
+export_canvas.width = 1.5 * canvas.width;
+export_canvas.height = 1.5 * canvas.height;
+const export_ctx = export_canvas.getContext("2d");
+if (export_ctx === null) throw new Error("null context");
 
 // Points use canvas coordinates; each stroke retains its own appearance.
 const context = canvas.getContext("2d")!;
@@ -68,24 +77,24 @@ const emojiBox: Toolbox[] = [{
 }];
 
 // Rebuild pixels from the document and preview after each relevant state change.
-function render() {
+function render(canvas_context: CanvasRenderingContext2D) {
   undo.disabled = activePointer !== null || strokes.length === 0;
   redo.disabled = activePointer !== null || undone.length === 0;
-  context.clearRect(0, 0, canvas.width, canvas.height);
+  canvas_context.clearRect(0, 0, canvas.width, canvas.height);
   for (const item of activePointer === null ? strokes : [...strokes, stroke]) {
     if (item.kind == "stroke") {
-      context.strokeStyle = item.color;
-      context.lineWidth = item.width;
-      context.beginPath();
-      context.moveTo(item.points[0].x, item.points[0].y);
+      canvas_context.strokeStyle = item.color;
+      canvas_context.lineWidth = item.width;
+      canvas_context.beginPath();
+      canvas_context.moveTo(item.points[0].x, item.points[0].y);
       for (const point of item.points.slice(1)) {
-        context.lineTo(point.x, point.y);
+        canvas_context.lineTo(point.x, point.y);
       }
-      context.stroke();
+      canvas_context.stroke();
     } else if (item.kind == "emoji") {
-      context.textBaseline = "middle";
-      context.font = `${item.size}px serif`;
-      context.fillText(item.id, item.points.x, item.points.y);
+      canvas_context.textBaseline = "middle";
+      canvas_context.font = `${item.size}px serif`;
+      canvas_context.fillText(item.id, item.points.x, item.points.y);
     }
   }
 
@@ -153,7 +162,7 @@ if (emojiBox) {
 // create Redraw button
 const redraw = document.createElement("button");
 redraw.textContent = "Redraw";
-redraw.onclick = render;
+redraw.onclick = () => render(canvas_ctx);
 
 // create Clear button: resets ONLY the canvas
 const clear = document.createElement("button");
@@ -170,7 +179,7 @@ clear_doc.onclick = () => {
   strokes.length = 0;
   undone.length = 0;
   activePointer = null;
-  render();
+  render(canvas_ctx);
 };
 
 // create Undo button
@@ -179,7 +188,7 @@ undo.textContent = "Undo";
 undo.onclick = () => {
   const item = strokes.pop();
   if (item) undone.push(item);
-  render();
+  render(canvas_ctx);
 };
 
 // create Redo button
@@ -188,10 +197,38 @@ redo.textContent = "Redo";
 redo.onclick = () => {
   const item = undone.pop();
   if (item) strokes.push(item);
-  render();
+  render(canvas_ctx);
 };
-app.append(redraw, clear, clear_doc, undo, redo, thin, thick);
-render();
+
+// export
+
+const exportButton = document.createElement("button");
+exportButton.textContent = "Export Content";
+
+exportButton.onclick = () => {
+  if (export_ctx) {
+    export_ctx.setTransform(1.5, 0, 0, 1.5, 0, 0);
+    render(export_ctx);
+
+    export_canvas.toBlob((blob) => {
+      if (blob === null) {
+        return;
+      }
+
+      const url = URL.createObjectURL(blob);
+
+      const downloadLink = document.createElement("a");
+      downloadLink.href = url;
+      downloadLink.download = "export.png";
+      downloadLink.click();
+
+      URL.revokeObjectURL(url);
+    }, "image/png");
+  }
+};
+
+app.append(redraw, clear, clear_doc, undo, redo, thin, thick, exportButton);
+render(canvas_ctx);
 
 canvas.addEventListener("pointerdown", (event) => {
   if (activePointer !== null || event.button !== 0) return;
@@ -211,7 +248,7 @@ canvas.addEventListener("pointerdown", (event) => {
       kind: "emoji",
     };
   }
-  render();
+  render(canvas_ctx);
 });
 
 canvas.addEventListener("pointermove", (event) => {
@@ -219,7 +256,7 @@ canvas.addEventListener("pointermove", (event) => {
   if (current_tool.mode == "marker") {
     stroke.points.push({ x: event.offsetX, y: event.offsetY });
   }
-  render();
+  render(canvas_ctx);
 });
 
 // Save completed stroke and redo history
@@ -232,7 +269,8 @@ function finishStroke(event: PointerEvent) {
   }
   undone.length = 0;
   activePointer = null;
-  render();
+  if (canvas_ctx === null) throw new Error("null context");
+  render(canvas_ctx);
 }
 
 // Releasing your input or leaving the canvas saves the stroke; canceling it discards the stroke.
@@ -241,5 +279,5 @@ canvas.addEventListener("pointerleave", finishStroke);
 canvas.addEventListener("pointercancel", (event) => {
   if (event.pointerId !== activePointer) return;
   activePointer = null;
-  render();
+  render(canvas_ctx);
 });
