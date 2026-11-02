@@ -295,6 +295,14 @@ render(canvas_ctx);
 
 canvas.addEventListener("pointerdown", (event) => {
   if (activePointer !== null || event.button !== 0) return;
+  if (current_tool.mode == "emoji") {
+    emoji = {
+      points: { x: event.offsetX, y: event.offsetY },
+      id: current_tool.emoji,
+      size: 22,
+      kind: "emoji",
+    };
+  }
   activePointer = event.pointerId;
   if (current_tool.mode == "marker") {
     stroke = {
@@ -303,18 +311,12 @@ canvas.addEventListener("pointerdown", (event) => {
       width: current_tool.stroke_width,
       kind: "stroke",
     };
-  } else if (current_tool.mode == "emoji") {
-    emoji = {
-      points: { x: event.offsetX, y: event.offsetY },
-      id: current_tool.emoji,
-      size: 22,
-      kind: "emoji",
-    };
   }
 });
 
 canvas.addEventListener("pointermove", (event) => {
   if (event.pointerId !== activePointer) return;
+  if (current_tool.mode == "emoji") return;
   const last = stroke.points[stroke.points.length - 1];
   canvas_ctx.strokeStyle = stroke.color;
   canvas_ctx.lineWidth = stroke.width;
@@ -334,6 +336,11 @@ function finishStroke(event: PointerEvent) {
     strokes.push(stroke);
   } else if (current_tool.mode == "emoji") {
     strokes.push(emoji);
+    if (canvas_ctx) {
+      canvas_ctx.textBaseline = "middle";
+      canvas_ctx.font = `${emoji.size}px serif`;
+      canvas_ctx.fillText(emoji.id, emoji.points.x, emoji.points.y);
+    }
   }
   undone.length = 0;
   activePointer = null;
