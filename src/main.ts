@@ -338,6 +338,8 @@ function finishStroke(event: PointerEvent) {
   undone.length = 0;
   activePointer = null;
   if (canvas_ctx === null) throw new Error("null context");
+  undo.disabled = activePointer !== null || strokes.length === 0;
+  redo.disabled = activePointer !== null || undone.length === 0;
 }
 
 // Releasing your input or leaving the canvas saves the stroke; canceling it discards the stroke.
